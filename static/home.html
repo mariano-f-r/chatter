@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <title>chatter - chat with people who have this address</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  </head>
+
+  <body>
+    <section class ="section">
+      <div class="columns">
+      <div class="column is-one-quarter">
+       <div class="box">
+       <h1 class="title is-1">chatter</h1>
+        chatter is my simple attempt at a proof of concept app using the <a href="https://github.com/housleyjk/ws-rs">ws-rs library.</a>
+        You can find the source code <a href="">here</a> on my GitHub. Give it a star and follow me for more experiments, shots in the dark, and on rare occasions, good ideas.
+       </div>
+      </div>
+      <div class="column is-three-quarters">
+        <div class="box">
+          <h1 class="title is-2">Chat Messages</h1>
+        </div>
+        <div class="container" style="height: 57vh; overflow-x: hidden;overflow-y: auto;" id="messages">
+          
+        </div>
+          <!--This is where new message elements are created and attached-->
+        <div class="box">
+          <div class="columns">
+            <div class="column is-one-quarter">
+              <input class="input" type="text" placeholder="Name" oninput="validate()" value="" id="name">
+            </div>
+            <div class="column">
+              <input class="input" type="text" placeholder="Message" oninput="validate()" id = "message">
+            </div>
+            <div class="column is-narrow">
+              <button class="button is-success" disabled id="send_button" onclick = "send()">
+                <span class="icon is-large">
+                  <ion-icon name="send"></ion-icon>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class = "footer">
+      <div class="content has-text-centered">
+        <p>chatter created by Mariano Rodriguez. Source code licensed under the GNU GPL v3</p>
+      </div>
+    </footer>
+    <script>
+    const socket = new WebSocket("ws://"+window.location.host+"/ws");
+    socket.onmessage = function (event)  {
+      console.log(event);
+      const new_message = document.createElement("div");
+      new_message.setAttribute("class", "box");
+      // evil hack
+      new_message.prepend(""+event.data);
+
+      const msglog = document.getElementById("messages");
+      msglog.appendChild(new_message);
+      msglog.scrollTop = msglog.scrollHeight;
+    }
+
+    const message_field = document.getElementById("message");
+    message_field.addEventListener("keypress", function (event) {
+      if (event.key === "Enter") {
+        send();
+      }
+    });
+
+    function validate() {
+      const name = document.getElementById("name");
+      const message = document.getElementById("message");
+      const send_button = document.getElementById("send_button");
+      if (name.value == "" || message.value == "") {
+        send_button.setAttribute("disabled","");
+      } else {
+        send_button.removeAttribute("disabled");
+      }
+    }
+    function send() {
+      const name_field = document.getElementById("name").value;
+      const msg_field = document.getElementById("message");
+      if (msg_field.value == "") {
+        validate();
+        return;
+      }
+      const date = new Date();
+      // Stupid evil hack language
+      const final_message = { username: name_field, time: date.toLocaleTimeString(), content: msg_field.value};
+
+      socket.send(JSON.stringify(final_message));
+      msg_field.value="";
+    }
+    validate();
+    document.getElementById("send_button").addEventListener("click", send); 
+  </script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  </body>
+</html>
+
