@@ -1,9 +1,10 @@
 use serde::Deserialize;
 use serde_json;
 use std::fs;
+use std::rc::Rc;
 use ws::{listen, Error, ErrorKind, Handler, Handshake, Message, Request, Response, Result};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct ChatMessage {
     username: String,
     time: String,
@@ -12,6 +13,7 @@ struct ChatMessage {
 
 struct Server {
     output: ws::Sender,
+    ip: Option<String>,
 }
 
 impl Handler for Server {
@@ -47,6 +49,7 @@ impl Handler for Server {
                 ))
             }
         };
+        dbg!("{}", &parsed_message);
         let sendable_message = format!(
             "{} at {}: {}",
             parsed_message.username, parsed_message.time, parsed_message.content
@@ -54,17 +57,17 @@ impl Handler for Server {
         self.output.broadcast(sendable_message)
     }
     fn on_open(&mut self, shake: Handshake) -> Result<()> {
+        let address = shake.remote_addr()?;
         self.output.broadcast(format!(
-            "User from {} has joined the chat",
-            shake
-                .remote_addr()
-                .unwrap_or(Some("an unknown IP".to_string()))
-                .unwrap()
+            "{} has joined the chat",
+            address.unwrap_or("unknown address".to_string())
         ))
     }
 }
 
 fn main() {
-    println!("Running on http://127.0.0.1:8000");
-    listen("127.0.0.1:8000", |output| Server { output }).unwrap();
+    let users: Rc<Vec<String>> = Rc::new(Vec::<String>::new());
+    let host = "192.168.137.33:8000";
+    println!("Running on http://{}", host);
+    listen(host, |output| Server { output, ip: None }).unwrap();
 }
