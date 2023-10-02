@@ -51,7 +51,7 @@
       </div>
     </footer>
     <script>
-    const socket = new WebSocket("ws://"+window.location.host+"/ws");
+    const socket = new WebSocket("wss://"+window.location.host+"/ws");
     socket.onmessage = function (event)  {
       const new_message = document.createElement("div");
       new_message.setAttribute("class", "box");
