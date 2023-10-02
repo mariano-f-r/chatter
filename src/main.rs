@@ -70,11 +70,7 @@ impl Handler for ClientHandler {
         self.output.broadcast(sendable_message)
     }
     fn on_open(&mut self, shake: Handshake) -> Result<(), ws::Error> {
-        let address = shake.remote_addr()?;
-        self.output.broadcast(format!(
-            "{} has joined the chat",
-            address.unwrap_or("unknown address".to_string())
-        ))
+        self.output.broadcast("Someone has joined the chat")
     }
 }
 
