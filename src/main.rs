@@ -72,6 +72,11 @@ impl Handler for ClientHandler {
     fn on_open(&mut self, shake: Handshake) -> Result<(), ws::Error> {
         self.output.broadcast("Someone has joined the chat")
     }
+    fn on_close(&mut self, code: ws::CloseCode, reason: &str) {
+        self.output
+            .broadcast("Someone has left the conversation")
+            .expect("Should be able to send goodbye message to remaining clients");
+    }
 }
 
 #[shuttle_runtime::main]
