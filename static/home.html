@@ -70,13 +70,24 @@
       }
     });
 
+    /**
+     * Checks that content of name and message input are between 0 and 32 or 256 respectively
+     * @param   {String}  name  Content from name input box
+     * @param   {String}  msg   Content from message input box
+     * @return  {boolean}       True if the name and message meet conditions, false otherwise
+     */
     function validateMessage(name, msg) {
-      if (name.length != 0 && msg.length != 0) {
+      if (name.length != 0 && name.length < 32 && msg.length != 0 && msg.length < 256) {
         return true;
       }
       return false;
     }
     
+    /**
+     * Checks if name and message are valid
+     * If valid visually and functionally enable send message button
+     * If not valid disable button
+     */
     function updateButton() {
       const valid = validateMessage(getName(), getMessage());
       const send_button = document.getElementById("send_button");
@@ -87,23 +98,31 @@
       }
     }
 
+    // Clears content of message input box
     function clear() {
       const message = document.getElementById("message");
       message.value = "";
     }
 
+    // Returns content of name input box as String, whitespace on outside removed
     function getName() {
       const name = document.getElementById("name");
-      console.log(name.value.trim());
+      // console.log(name.value.trim());
       return name.value.trim();
     }
 
+    // Returns content of message input box as String, whitespace on outside removed
     function getMessage() {
       const msg = document.getElementById("message");
-      console.log(msg.value.trim());
+      // console.log(msg.value.trim());
       return msg.value.trim();
     }
 
+    /**
+     * Checks if name and message are valid, if true then send message, clear message input, and update send button
+     * @param   {String}  name  Content from name input box
+     * @param   {String}  msg   Content from message input box
+     */
     function send(name, msg) {
       if (validateMessage(name, msg) === true) {
         const date = new Date();
@@ -119,4 +138,3 @@
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
   </body>
 </html>
-
