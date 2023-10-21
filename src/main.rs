@@ -1,10 +1,13 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json;
 use shuttle_runtime;
 use std::fs;
 use std::net;
-use std::rc::Rc;
-use ws::{listen, Error, ErrorKind, Handler, Handshake, Message, Request, Response};
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
+};
+use ws::{listen, Handler, Handshake, Message, Request, Response};
 
 #[derive(Deserialize, Debug)]
 struct ChatMessage {
@@ -13,21 +16,35 @@ struct ChatMessage {
     content: String,
 }
 
-struct CustomService;
+// Anything received in some way from one client and/or broadcasted to the rest should be
+// represented here
+#[derive(Serialize, Deserialize, Debug)]
+enum ChatEvents {
+    // Contains the new user count within
+    UserCountChange { count: u32, is_join: bool },
+    SystemMessage(String),
+    ChatMessage(String),
+}
+
+struct CustomService {
+    user_count: Arc<AtomicU32>,
+}
 
 #[shuttle_runtime::async_trait]
 impl shuttle_runtime::Service for CustomService {
     async fn bind(mut self, addr: net::SocketAddr) -> Result<(), shuttle_runtime::Error> {
-        let users: Rc<Vec<String>> = Rc::new(Vec::<String>::new());
-
-        listen(addr, |output| ClientHandler { output, ip: None }).unwrap();
+        listen(addr, |output| ClientHandler {
+            output,
+            user_count_ref: self.user_count.clone(),
+        })
+        .unwrap();
         Ok(())
     }
 }
 
 struct ClientHandler {
     output: ws::Sender,
-    ip: Option<String>,
+    user_count_ref: Arc<AtomicU32>,
 }
 
 impl Handler for ClientHandler {
@@ -57,29 +74,71 @@ impl Handler for ClientHandler {
         let parsed_message: ChatMessage = match serde_json::from_str(msg_json) {
             Ok(chatmessage) => chatmessage,
             Err(e) => {
-                return Err(Error::new(
-                    ErrorKind::Internal,
+                return Err(ws::Error::new(
+                    ws::ErrorKind::Internal,
                     format!("Received arbitrary JSON: {}", e),
                 ))
             }
         };
-        let sendable_message = format!(
+        let sendable_message = ChatEvents::ChatMessage(format!(
             "{} at {}: {}",
             parsed_message.username, parsed_message.time, parsed_message.content
-        );
+        ));
+        let sendable_message =
+            serde_json::to_string(&sendable_message).expect("Should be able to serialize data");
         self.output.broadcast(sendable_message)
     }
-    fn on_open(&mut self, shake: Handshake) -> Result<(), ws::Error> {
-        self.output.broadcast("Someone has joined the chat")
+    fn on_open(&mut self, _: Handshake) -> Result<(), ws::Error> {
+        // This line isn't particularly pleasant, but it minimizes accesses to the atomically
+        // reference counted usercount
+        let count = self.user_count_ref.fetch_add(1, Ordering::SeqCst) + 1;
+        let sendable_message = ChatEvents::UserCountChange {
+            count,
+            is_join: true,
+        };
+        let sendable_message: String = match serde_json::to_string(&sendable_message) {
+            Ok(msg) => msg,
+            Err(e) => {
+                return Err(ws::Error::new(
+                    ws::ErrorKind::Internal,
+                    format!("Failed to serialize data: {}", e),
+                ))
+            }
+        };
+        self.output.broadcast(sendable_message)?;
+        self.output.broadcast(
+            serde_json::to_string(&ChatEvents::SystemMessage(String::from(
+                "Someone has joined",
+            )))
+            .expect("Should be able to serialize message"),
+        )
     }
-    fn on_close(&mut self, code: ws::CloseCode, reason: &str) {
+    fn on_close(&mut self, _: ws::CloseCode, _: &str) {
+        // Same as before
+        let count = self.user_count_ref.fetch_sub(1, Ordering::SeqCst) - 1;
+        let sendable_message = ChatEvents::UserCountChange {
+            count,
+            is_join: false,
+        };
+        let sendable_message: String =
+            serde_json::to_string(&sendable_message).expect("Should be able to serialize data");
         self.output
-            .broadcast("Someone has left the conversation")
-            .expect("Should be able to send goodbye message to remaining clients");
+            .broadcast(sendable_message)
+            .expect("Should be able to send message");
+        self.output
+            .broadcast(
+                serde_json::to_string(&ChatEvents::SystemMessage(String::from(
+                    "Somebody has left",
+                )))
+                .expect("Should be able to serialize message"),
+            )
+            .expect("Should be able to send goodbye message")
     }
 }
 
 #[shuttle_runtime::main]
 async fn init() -> Result<CustomService, shuttle_runtime::Error> {
-    Ok(CustomService)
+    Ok(CustomService {
+        user_count: Arc::new(AtomicU32::new(0)),
+    })
 }
