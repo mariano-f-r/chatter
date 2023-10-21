@@ -19,13 +19,21 @@
        </div>
       </div>
       <div class="column is-three-quarters">
-        <div class="box">
-          <h1 class="title is-2">Chat Messages</h1>
+        <div class="columns">
+          <div class="column is-three-quarters">
+            <div class="box">
+              <h2 class="title is-2">Chat Messages</h1>
+            </div>
+            <div class="container" style="height: 57vh; overflow-x: hidden;overflow-y: auto;" id="messages">
+            <!--This is where new message elements are created and attached-->
+            </div>
+          </div>
+          <div class="column is-one-quarter">
+            <div class="box">
+              <h3 class="title is-3" id="usercount">Users Online: 1</h1>
+            </div>
+          </div>
         </div>
-        <div class="container" style="height: 57vh; overflow-x: hidden;overflow-y: auto;" id="messages">
-          
-        </div>
-          <!--This is where new message elements are created and attached-->
         <div class="box">
           <div class="columns">
             <div class="column is-one-quarter">
@@ -50,90 +58,7 @@
         <p>chatter created by Mariano Rodriguez. Source code licensed under the GNU GPL v3</p>
       </div>
     </footer>
-    <script>
-    const socket = new WebSocket("wss://"+window.location.host+"/ws");
-    socket.onmessage = function (event)  {
-      const new_message = document.createElement("div");
-      new_message.setAttribute("class", "box");
-      // evil hack
-      new_message.prepend(""+event.data);
-
-      const msglog = document.getElementById("messages");
-      msglog.appendChild(new_message);
-      msglog.scrollTop = msglog.scrollHeight;
-    }
-
-    const message_field = document.getElementById("message");
-    message_field.addEventListener("keypress", function (event) {
-      if (event.key === "Enter") {
-        send(getName(), getMessage());
-      }
-    });
-
-    /**
-     * Checks that content of name and message input are between 0 and 32 or 256 respectively
-     * @param   {String}  name  Content from name input box
-     * @param   {String}  msg   Content from message input box
-     * @return  {boolean}       True if the name and message meet conditions, false otherwise
-     */
-    function validateMessage(name, msg) {
-      if (name.length != 0 && name.length < 32 && msg.length != 0 && msg.length < 256) {
-        return true;
-      }
-      return false;
-    }
-    
-    /**
-     * Checks if name and message are valid
-     * If valid visually and functionally enable send message button
-     * If not valid disable button
-     */
-    function updateButton() {
-      const valid = validateMessage(getName(), getMessage());
-      const send_button = document.getElementById("send_button");
-      if (valid) {
-        send_button.removeAttribute("disabled");
-      } else {
-        send_button.setAttribute("disabled", "");
-      }
-    }
-
-    // Clears content of message input box
-    function clear() {
-      const message = document.getElementById("message");
-      message.value = "";
-    }
-
-    // Returns content of name input box as String, whitespace on outside removed
-    function getName() {
-      const name = document.getElementById("name");
-      // console.log(name.value.trim());
-      return name.value.trim();
-    }
-
-    // Returns content of message input box as String, whitespace on outside removed
-    function getMessage() {
-      const msg = document.getElementById("message");
-      // console.log(msg.value.trim());
-      return msg.value.trim();
-    }
-
-    /**
-     * Checks if name and message are valid, if true then send message, clear message input, and update send button
-     * @param   {String}  name  Content from name input box
-     * @param   {String}  msg   Content from message input box
-     */
-    function send(name, msg) {
-      if (validateMessage(name, msg) === true) {
-        const date = new Date();
-        // Stupid evil hack language
-        const final_message = { username: name, time: date.toLocaleTimeString(), content: msg};
-        socket.send(JSON.stringify(final_message));
-        clear();
-        updateButton();
-      }
-    }
-  </script>
+  <script type="text/javascript" src="static/main.js"></script>
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
   </body>
