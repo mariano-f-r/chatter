@@ -25,7 +25,7 @@ const message_field = document.getElementById("message");
 
 message_field.addEventListener("keypress", function (event) {
   if (event.key === "Enter") {
-    send(getName(), getMessage());
+    send_message(getName(), getMessage());
   }
 });
 
