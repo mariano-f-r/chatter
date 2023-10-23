@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-  <title>chatter - chat with people who have this address</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  </head>
 
-  <body>
-    <section class ="section">
-      <div class="columns">
+<head>
+  <title>chatter - chat with people who have this address</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+
+<body>
+  <section class="section">
+    <div class="columns">
       <div class="column is-one-quarter">
-       <div class="box">
-       <h1 class="title is-1">chatter</h1>
-        chatter is my simple attempt at a proof of concept app using the <a href="https://github.com/housleyjk/ws-rs">ws-rs library.</a>
-        You can find the source code <a href="https://github.com/sergeant-savage/chatter/">here</a> on my GitHub. Give it a star and follow me for more experiments, shots in the dark, and on rare occasions, good ideas.
-       </div>
+        <div class="box">
+          <h1 class="title is-1">chatter</h1>
+          chatter is my simple attempt at a proof of concept app using the <a
+            href="https://github.com/housleyjk/ws-rs">ws-rs library.</a>
+          You can find the source code <a href="https://github.com/sergeant-savage/chatter/">here</a> on my GitHub. Give
+          it a star and follow me for more experiments, shots in the dark, and on rare occasions, good ideas.
+        </div>
       </div>
       <div class="column is-three-quarters">
         <div class="columns">
@@ -25,12 +28,15 @@
               <h2 class="title is-2">Chat Messages</h1>
             </div>
             <div class="container" style="height: 57vh; overflow-x: hidden;overflow-y: auto;" id="messages">
-            <!--This is where new message elements are created and attached-->
+              <!--This is where new message elements are created and attached-->
             </div>
           </div>
           <div class="column is-one-quarter">
             <div class="box">
               <h3 class="title is-3" id="usercount">Users Online: 1</h1>
+            </div>
+            <div class="container" style="height: 57vh; overflow-x: hidden;overflow-y: auto;" id="typing">
+              <!--This is where new "is typing" elements are created and attached-->
             </div>
           </div>
         </div>
@@ -40,10 +46,11 @@
               <input class="input" type="text" placeholder="Name" oninput="updateButton()" value="" id="name">
             </div>
             <div class="column">
-              <input class="input" type="text" placeholder="Message" oninput="updateButton()" id = "message">
+              <input class="input" type="text" placeholder="Message" id="message">
             </div>
             <div class="column is-narrow">
-              <button class="button is-success" disabled id="send_button" onclick = "send(getName(), getMessage())">
+              <button class="button is-success" disabled id="send_button"
+                onclick="send_message(getName(), getMessage())">
                 <span class="icon is-large">
                   <ion-icon name="send"></ion-icon>
                 </span>
@@ -52,14 +59,15 @@
           </div>
         </div>
       </div>
-    </section>
-    <footer class = "footer">
-      <div class="content has-text-centered">
-        <p>chatter created by Mariano Rodriguez. Source code licensed under the GNU GPL v3</p>
-      </div>
-    </footer>
+  </section>
+  <footer class="footer">
+    <div class="content has-text-centered">
+      <p>chatter created by Mariano Rodriguez. Source code licensed under the GNU GPL v3</p>
+    </div>
+  </footer>
   <script type="text/javascript" src="static/main.js"></script>
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  </body>
+</body>
+
 </html>

@@ -21,6 +21,10 @@ enum ChatEvents {
         time: String,
         content: String,
     },
+    TypingEvent {
+        username: String,
+        is_starting: bool,
+    },
 }
 
 struct CustomService {
@@ -82,13 +86,20 @@ impl Handler for ClientHandler {
                 ))
             }
         };
+        // There is certainly a better way to do this, but in short, all this does is match based
+        // on if its a valid enum variant, and if so, just broadcast the original message instead
+        // of re-serializing it. This way is type-safe to my knowledge.
         match parsed_message {
             ChatEvents::ChatMessage {
                 username: _,
                 time: _,
                 content: _,
             } => self.output.broadcast(msg_json)?,
-            _ => (),
+            ChatEvents::TypingEvent {
+                username: _,
+                is_starting: _,
+            } => self.output.broadcast(msg_json)?,
+            event => println!("{:#?}", event),
         }
         Ok(())
     }
