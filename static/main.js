@@ -58,7 +58,6 @@ function render_message(message) {
 function render_new_typer(username) {
   const new_typer = document.createElement("div");
   new_typer.setAttribute("class", "box");
-  new_typer.setAttribute("style", "display: inline-block");
   new_typer.innerHTML = "<strong>"+username+"</strong> is typing";
   const typer_list = document.getElementById("typing");
   typer_list.appendChild(new_typer);
