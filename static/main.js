@@ -1,4 +1,4 @@
-const socket = new WebSocket("ws://"+window.location.host+"/ws");
+const socket = new WebSocket("wss://"+window.location.host+"/ws");
 
 socket.onmessage = function (event)  {
   let message = JSON.parse(event.data)
