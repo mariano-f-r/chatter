@@ -1,4 +1,4 @@
-const socket = new WebSocket("wss://"+window.location.host+"/ws");
+const socket = new WebSocket("ws://"+window.location.host+"/ws");
 
 socket.onmessage = function (event)  {
   let message = JSON.parse(event.data)
@@ -10,8 +10,40 @@ socket.onmessage = function (event)  {
     render_message(message.ChatMessage.username+" at "+message.ChatMessage.time+": "+message.ChatMessage.content);
   } else if (keys[0] === "UserCountChange") {
     update_user_count(message.UserCountChange)
+  } else if (keys[0] === "TypingEvent") {
+    if (message.TypingEvent.is_starting) {
+      render_new_typer(message.TypingEvent.username);
+    } else {
+      destroy_typer(message.TypingEvent.username);
+    }
   }
 }
+
+// Since many events are attached to the message element,
+// better to just use an event listener
+const message_field = document.getElementById("message");
+
+message_field.addEventListener("keypress", function (event) {
+  if (event.key === "Enter") {
+    send(getName(), getMessage());
+  }
+});
+
+// Will send ws messages to the server alerting it that this user is starting to type,
+// will also update button
+let typingTimeout;
+let isTyping = false;
+message_field.addEventListener("input", function () {
+  if (getName()=="") {
+    return;
+  }
+  start_typing();
+  if (typingTimeout != undefined) {
+    clearTimeout(typingTimeout);
+  }
+  typingTimeout = setTimeout(stop_typing, 1000);
+  updateButton();
+});
 
 function render_message(message) {
   const new_message = document.createElement("div");
@@ -23,18 +55,41 @@ function render_message(message) {
   msglog.scrollTop = msglog.scrollHeight;
 }
 
+function render_new_typer(username) {
+  const new_typer = document.createElement("div");
+  new_typer.setAttribute("class", "box");
+  new_typer.setAttribute("style", "display: inline-block");
+  new_typer.innerHTML = "<strong>"+username+"</strong> is typing";
+  const typer_list = document.getElementById("typing");
+  typer_list.appendChild(new_typer);
+}
+
+function destroy_typer(username) {
+  const typer_list = document.getElementById("typing");
+  for (let i = 0; i<typer_list.children.length; i++) {
+    if (typer_list.children[i].firstChild.innerText == username) {
+      typer_list.children[i].remove();
+      return;
+    }
+  }
+}
+
 function update_user_count(count) {
   const counter = document.getElementById("usercount");
   counter.textContent="Users Online: "+count;
 }
 
-const message_field = document.getElementById("message");
-message_field.addEventListener("keypress", function (event) {
-  if (event.key === "Enter") {
-    send(getName(), getMessage());
+function start_typing () {
+  if (!isTyping) {
+    send_typing_event(true);
+    isTyping=true;
   }
-});
+}
 
+function stop_typing () {
+  isTyping = false;
+  send_typing_event(false);
+}
 /**
  * Checks that content of name and message input are between 0 and 32 or 256 respectively
  * @param   {String}  name  Content from name input box
@@ -88,7 +143,7 @@ function getMessage() {
  * @param   {String}  name  Content from name input box
  * @param   {String}  msg   Content from message input box
  */
-function send(name, msg) {
+function send_message(name, msg) {
   if (validateMessage(name, msg) === true) {
     const date = new Date();
     // Stupid evil hack language
@@ -99,3 +154,7 @@ function send(name, msg) {
   }
 }
 
+function send_typing_event(starting) {
+  const message = {TypingEvent: {username: getName(), is_starting: starting,}};
+  socket.send(JSON.stringify(message));
+}
