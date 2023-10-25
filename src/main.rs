@@ -80,10 +80,15 @@ impl Handler for ClientHandler {
         let parsed_message: ChatEvents = match serde_json::from_str(msg_json) {
             Ok(chatmessage) => chatmessage,
             Err(e) => {
-                return Err(ws::Error::new(
-                    ws::ErrorKind::Internal,
-                    format!("Received arbitrary JSON: {}", e),
-                ))
+                self.output.send(
+                    serde_json::to_string(&ChatEvents::SystemMessage(String::from(
+                        "You have been kicked for sending arbitrary JSON to the server.",
+                    )))
+                    .expect("Should have been able to serialize this message"),
+                )?;
+                self.output.close(ws::CloseCode::Invalid)?;
+                println!("Received arbitrary JSON {:#?}", e);
+                return Ok(());
             }
         };
         // There is certainly a better way to do this, but in short, all this does is match based
