@@ -6,8 +6,10 @@ socket.onmessage = function (event)  {
   let keys = Object.keys(message);
   if (keys[0] === "SystemMessage") {
     render_message(message.SystemMessage);
+    spawnNotification("System Message", message.SystemMessage)
   } else if (keys[0]=== "ChatMessage") {
     render_message(message.ChatMessage.username+" at "+message.ChatMessage.time+": "+message.ChatMessage.content);
+    spawnNotification(message.ChatMessage.username, message.ChatMessage.content)
   } else if (keys[0] === "UserCountChange") {
     update_user_count(message.UserCountChange)
   } else if (keys[0] === "TypingEvent") {
@@ -156,4 +158,13 @@ function send_message(name, msg) {
 function send_typing_event(starting) {
   const message = {TypingEvent: {username: getName(), is_starting: starting,}};
   socket.send(JSON.stringify(message));
+}
+
+function spawnNotification(title, body) {
+  var options = {
+    body: body,
+    icon: "static/favicon.ico",
+  }
+  let newNotification = new Notification(title, options);
+  setTimeout(newNotification.close.bind(newNotification), 4000);
 }
