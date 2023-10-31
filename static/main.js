@@ -1,15 +1,29 @@
 const socket = new WebSocket("wss://"+window.location.host+"/ws");
 
+let focused = true;
+
+window.addEventListener("blur", function (event) {
+  focused = false;
+})
+
+window.addEventListener("focus", function (event) {
+  focused = true;
+})
+
 socket.onmessage = function (event)  {
   let message = JSON.parse(event.data)
   console.log(message);
   let keys = Object.keys(message);
   if (keys[0] === "SystemMessage") {
     render_message(message.SystemMessage);
-    spawnNotification("System Message", message.SystemMessage)
+    if (!focused) {
+      spawnNotification("System Message", message.SystemMessage)
+    }
   } else if (keys[0]=== "ChatMessage") {
     render_message(message.ChatMessage.username+" at "+message.ChatMessage.time+": "+message.ChatMessage.content);
-    spawnNotification(message.ChatMessage.username, message.ChatMessage.content)
+    if (!focused) {
+      spawnNotification(message.ChatMessage.username, message.ChatMessage.content)
+    }
   } else if (keys[0] === "UserCountChange") {
     update_user_count(message.UserCountChange)
   } else if (keys[0] === "TypingEvent") {
@@ -160,11 +174,17 @@ function send_typing_event(starting) {
   socket.send(JSON.stringify(message));
 }
 
+function request_notification_permissions() {
+  if (Notification.permission==="default") {
+    Notification.requestPermission();
+  }
+}
+
+
 function spawnNotification(title, body) {
   var options = {
     body: body,
-    icon: "static/favicon.ico",
   }
   let newNotification = new Notification(title, options);
-  setTimeout(newNotification.close.bind(newNotification), 4000);
+  setTimeout(newNotification.close.bind(newNotification), 1000);
 }
