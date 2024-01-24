@@ -1,15 +1,20 @@
-const socket = new WebSocket("wss://"+window.location.host+"/ws");
+// Establishes a secure WebSocket connection to the server.
+// This connection is used for RTC between client and server (YAY)
+const socket = new WebSocket(`wss://${window.location.host}/ws`); // Sebastian: I just rewrote it with a template literal just for readability
 
+// Tracks the focus state of the window for notif purposes
 let focused = true;
-
+// Listening for losing focus of the window
 window.addEventListener("blur", function (event) {
   focused = false;
 })
-
+// Listening for gaining focus of the window
 window.addEventListener("focus", function (event) {
   focused = true;
 })
 
+// Handles incomming traffic and messages from WebSocket
+// Based on whatever the message is, there will be some different actions taken.
 socket.onmessage = function (event)  {
   let message = JSON.parse(event.data)
   console.log(message);
@@ -71,6 +76,7 @@ function render_message(message) {
   msglog.scrollTop = msglog.scrollHeight;
 }
 
+// Render a typing notif in the chat window
 function render_new_typer(username) {
   const new_typer = document.createElement("div");
   new_typer.setAttribute("class", "box");
@@ -79,6 +85,7 @@ function render_new_typer(username) {
   typer_list.appendChild(new_typer);
 }
 
+// Remove a typing notif from the chat window
 function destroy_typer(username) {
   const typer_list = document.getElementById("typing");
   for (let i = 0; i<typer_list.children.length; i++) {
@@ -89,11 +96,13 @@ function destroy_typer(username) {
   }
 }
 
+// Update the displayed count of users currently online
 function update_user_count(count) {
   const counter = document.getElementById("usercount");
   counter.textContent="Users Online: "+count;
 }
 
+// Updates when user starts typing
 function start_typing () {
   if (!isTyping) {
     send_typing_event(true);
@@ -101,10 +110,12 @@ function start_typing () {
   }
 }
 
+// Updates when user stops typing
 function stop_typing () {
   isTyping = false;
   send_typing_event(false);
 }
+
 /**
  * Checks that content of name and message input are between 0 and 32 or 256 respectively
  * @param   {String}  name  Content from name input box
@@ -180,7 +191,7 @@ function request_notification_permissions() {
   }
 }
 
-
+// Spawn browser notif
 function spawnNotification(title, body) {
   var options = {
     body: body,
