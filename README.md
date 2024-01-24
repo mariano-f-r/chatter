@@ -5,6 +5,8 @@ This project is a simple proof of concept realtime chatting app using websockets
 I used [ws-rs](https://github.com/housleyjk/ws-rs) as the backend and the [Bulma](https://bulma.io) CSS framework.
 It is very much a proof of concept, and will likely not receive many, if any updates.
 
+(It is available here)[https://chatter1.shuttleapp.rs/]
+
 ## Contributing
 Contributing is always welcome, and any and all pull requests and issues are appreciated.
 
