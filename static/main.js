@@ -197,5 +197,5 @@ function spawnNotification(title, body) {
     body: body,
   }
   let newNotification = new Notification(title, options);
-  setTimeout(newNotification.close.bind(newNotification), 1000);
+  setTimeout(newNotification.close.bind(newNotification), 5000);
 }
