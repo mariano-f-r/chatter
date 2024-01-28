@@ -1,0 +1,20 @@
+name: Shuttle Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: shuttle-hq/deploy-action@main
+        with:
+          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
+          working-directory: "src"
+          name: "chatter1"
+          allow-dirty: "false"
+          no-test: "true"
+          cargo-shuttle-version: "0.27.0"
