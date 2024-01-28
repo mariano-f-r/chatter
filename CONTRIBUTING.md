@@ -20,9 +20,11 @@ Once you have done this you will be able to use the websocket without receiving 
 
 ## Branch Structure
 
+When developing either in the repository if you are a contributor, or from a fork, please follow these conventions when creating new branches.
+
 | Branch Name | Explanation                                                                                                                                               |
 |-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| main        | The main branch. This branch is set to auto-deploy to Shuttle                                                                                             |
+| main        | The main branch. This branch is set to auto-deploy to Shuttle. Never commit to this branch directly. Instead create a branch matching the ones from below.|
 | feat/*      | Any branch prefixed with "feat/" is a feature branch and contains a brand new feature                                                                     |
 | chore/*     | Any branch prefixed with "chore/" is a chore branch. Anything not involving code, like deployments, updating the README, etc, are found in these branches |
 | fix/*       | Any branch prefixed with "fix/" is a bugfix branch. These branches should only be used to fix bugs.                                                       |
