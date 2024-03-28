@@ -1,14 +1,15 @@
 [package]
 name = "chatter"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ws = "0.9.2"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.107"
-shuttle-runtime = "0.27.0"
-shuttle-axum = "0.27.0"
+shuttle-runtime = "0.36.0"
 tokio = "1.26"
+tokio-tungstenite = "0.21.0"
+uuid = { version = "1.8.0", feature = ["v4"] }
+futures-util = "0.3.30"

@@ -1,6 +1,6 @@
 // Establishes a secure WebSocket connection to the server.
 // This connection is used for RTC between client and server (YAY)
-const socket = new WebSocket(`wss://${window.location.host}/ws`); // Sebastian: I just rewrote it with a template literal just for readability
+const socket = new WebSocket(`ws://127.0.0.1:8000`); // Sebastian: I just rewrote it with a template literal just for readability
 
 // Tracks the focus state of the window for notif purposes
 let focused = true;
@@ -16,18 +16,14 @@ window.addEventListener("focus", function (event) {
 // Handles incomming traffic and messages from WebSocket
 // Based on whatever the message is, there will be some different actions taken.
 socket.onmessage = function (event)  {
+  console.log(event.data);
   let message = JSON.parse(event.data)
   console.log(message);
   let keys = Object.keys(message);
-  if (keys[0] === "SystemMessage") {
-    render_message(message.SystemMessage);
+  if (keys[0]=== "Message") {
+    render_message(message.Message.username+" at "+message.Message.time+": "+message.Message.content);
     if (!focused) {
-      spawnNotification("System Message", message.SystemMessage)
-    }
-  } else if (keys[0]=== "ChatMessage") {
-    render_message(message.ChatMessage.username+" at "+message.ChatMessage.time+": "+message.ChatMessage.content);
-    if (!focused) {
-      spawnNotification(message.ChatMessage.username, message.ChatMessage.content)
+      spawnNotification(message.Message.username, message.Message.content)
     }
   } else if (keys[0] === "UserCountChange") {
     update_user_count(message.UserCountChange)
@@ -52,20 +48,20 @@ message_field.addEventListener("keypress", function (event) {
 
 // Will send ws messages to the server alerting it that this user is starting to type,
 // will also update button
-let typingTimeout;
-let isTyping = false;
-message_field.addEventListener("input", function () {
-  if (getName()=="") {
-    return;
-  }
-  start_typing();
-  if (typingTimeout != undefined) {
-    clearTimeout(typingTimeout);
-  }
-  typingTimeout = setTimeout(stop_typing, 1000);
-  updateButton();
-});
-
+// let typingTimeout;
+// let isTyping = false;
+// message_field.addEventListener("input", function () {
+//   if (getName()=="") {
+//     return;
+//   }
+//   start_typing();
+//   if (typingTimeout != undefined) {
+//     clearTimeout(typingTimeout);
+//   }
+//   typingTimeout = setTimeout(stop_typing, 1000);
+//   updateButton();
+// });
+//
 function render_message(message) {
   const new_message = document.createElement("div");
   new_message.setAttribute("class", "box");
@@ -173,7 +169,7 @@ function send_message(name, msg) {
   if (validateMessage(name, msg) === true) {
     const date = new Date();
     // Stupid evil hack language
-    const final_message = {ChatMessage: { username: name, time: date.toLocaleTimeString(), content: msg}};
+    const final_message = { Message: { username: name, time: date.toLocaleTimeString(), content: msg }};
     socket.send(JSON.stringify(final_message));
     clear();
     updateButton();

@@ -1,156 +1,144 @@
+use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::net;
-use std::sync::{
-    atomic::{AtomicU32, Ordering},
-    Arc,
-};
-use ws::{listen, Handler, Handshake, Message, Request, Response};
+use std::error::Error;
+use std::net::SocketAddr;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::mpsc;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{accept_async, WebSocketStream};
+use uuid::{self, Uuid};
 
-// Anything received in some way from one client and/or broadcasted to the rest should be
-// represented here
-#[derive(Serialize, Deserialize, Debug)]
-enum ChatEvents {
-    // Contains the new user count within
-    UserCountChange(u32),
-    SystemMessage(String),
-    ChatMessage {
+#[derive(Debug)]
+struct User {
+    address: SocketAddr,
+    username: Option<String>,
+    sender: SplitSink<WebSocketStream<TcpStream>, Message>,
+    uuid: uuid::Uuid,
+}
+
+impl User {
+    fn new(
+        address: SocketAddr,
+        sender: SplitSink<WebSocketStream<TcpStream>, Message>,
+        uuid: Uuid,
+    ) -> Self {
+        User {
+            address,
+            username: None,
+            sender,
+            uuid,
+        }
+    }
+
+    async fn send_chat_message(&mut self, msg: &ChatMessage) {
+        let ser = serde_json::to_string(msg).expect("Should be able to serialize string to test");
+        self.sender
+            .send(Message::Text(ser))
+            .await
+            .expect("Should be able to send message via WebSocket through sink");
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+enum ChatMessage {
+    Message {
         username: String,
         time: String,
         content: String,
     },
-    TypingEvent {
-        username: String,
-        is_starting: bool,
-    },
+}
+// The ChatMessage should encapsulate system messages as well
+
+#[derive(Debug)]
+enum ThreadMessages {
+    NewUser(User),
+    UserLeave(Uuid),
+    UserMessage(ChatMessage),
+    KickUser(Uuid),
 }
 
-struct CustomService {
-    user_count: Arc<AtomicU32>,
-}
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let socket = TcpListener::bind("127.0.0.1:8000").await?;
+    let (tx, mut rx) = mpsc::channel(32);
 
-#[shuttle_runtime::async_trait]
-impl shuttle_runtime::Service for CustomService {
-    async fn bind(mut self, addr: net::SocketAddr) -> Result<(), shuttle_runtime::Error> {
-        listen(addr, |output| ClientHandler {
-            output,
-            user_count_ref: self.user_count.clone(),
-        })
-        .unwrap();
-        Ok(())
-    }
-}
+    tokio::spawn(async move {
+        let mut connections: Vec<User> = Vec::new();
 
-struct ClientHandler {
-    output: ws::Sender,
-    user_count_ref: Arc<AtomicU32>,
-}
-
-impl Handler for ClientHandler {
-    fn on_request(&mut self, req: &Request) -> Result<Response, ws::Error> {
-        println!("{} request to {:?}", req.method(), req.resource());
-        match req.resource() {
-            "/ws" => Response::from_request(req),
-            "/" => Ok(Response::new(
-                200,
-                "OK",
-                fs::read("static/home.html").expect("Should be able to read file"),
-            )),
-            "/static/main.js" => Ok(Response::new(
-                200,
-                "OK",
-                fs::read("static/main.js").expect("Should be able to read file"),
-            )),
-            "/favicon.ico" => Ok(Response::new(
-                200,
-                "OK",
-                fs::read("static/favicon.ico").expect("Should be able to read file"),
-            )),
-            _ => Ok(Response::new(
-                404,
-                "Not Found",
-                b"404 - Resource Not Found".to_vec(),
-            )),
-        }
-    }
-    fn on_message(&mut self, msg: Message) -> Result<(), ws::Error> {
-        let msg_json = msg.as_text()?;
-        let parsed_message: ChatEvents = match serde_json::from_str(msg_json) {
-            Ok(chatmessage) => chatmessage,
-            Err(e) => {
-                self.output.send(
-                    serde_json::to_string(&ChatEvents::SystemMessage(String::from(
-                        "You have been kicked for sending arbitrary JSON to the server.",
-                    )))
-                    .expect("Should have been able to serialize this message"),
-                )?;
-                self.output.close(ws::CloseCode::Invalid)?;
-                println!("Received arbitrary JSON {:#?}", e);
-                return Ok(());
+        while let Some(message) = rx.recv().await {
+            match message {
+                ThreadMessages::NewUser(user) => {
+                    println!("New user from {}", user.address);
+                    connections.push(user);
+                }
+                ThreadMessages::UserLeave(unique_ident) => {
+                    connections.retain(|user| user.uuid != unique_ident);
+                }
+                ThreadMessages::UserMessage(chat_message) => {
+                    for user in &mut connections {
+                        user.send_chat_message(&chat_message).await;
+                    }
+                }
+                ThreadMessages::KickUser(_uuid) => {
+                    println!("Need to implement");
+                }
             }
-        };
-        // There is certainly a better way to do this, but in short, all this does is match based
-        // on if its a valid enum variant, and if so, just broadcast the original message instead
-        // of re-serializing it. This way is type-safe to my knowledge.
-        match parsed_message {
-            ChatEvents::ChatMessage {
-                username: _,
-                time: _,
-                content: _,
-            } => self.output.broadcast(msg_json)?,
-            ChatEvents::TypingEvent {
-                username: _,
-                is_starting: _,
-            } => self.output.broadcast(msg_json)?,
-            event => println!("{:#?}", event),
         }
-        Ok(())
-    }
-    fn on_open(&mut self, _: Handshake) -> Result<(), ws::Error> {
-        // This line isn't particularly pleasant, but it minimizes accesses to the atomically
-        // reference counted usercount
-        let count = self.user_count_ref.fetch_add(1, Ordering::SeqCst) + 1;
-        let sendable_message = ChatEvents::UserCountChange(count);
-        let sendable_message: String = match serde_json::to_string(&sendable_message) {
-            Ok(msg) => msg,
-            Err(e) => {
-                return Err(ws::Error::new(
-                    ws::ErrorKind::Internal,
-                    format!("Failed to serialize data: {}", e),
-                ))
-            }
-        };
-        self.output.broadcast(sendable_message)?;
-        self.output.broadcast(
-            serde_json::to_string(&ChatEvents::SystemMessage(String::from(
-                "Someone has joined",
-            )))
-            .expect("Should be able to serialize message"),
-        )
-    }
-    fn on_close(&mut self, _: ws::CloseCode, _: &str) {
-        // Same as before
-        let count = self.user_count_ref.fetch_sub(1, Ordering::SeqCst) - 1;
-        let sendable_message = ChatEvents::UserCountChange(count);
-        let sendable_message: String =
-            serde_json::to_string(&sendable_message).expect("Should be able to serialize data");
-        self.output
-            .broadcast(sendable_message)
-            .expect("Should be able to send message");
-        self.output
-            .broadcast(
-                serde_json::to_string(&ChatEvents::SystemMessage(String::from(
-                    "Somebody has left",
-                )))
-                .expect("Should be able to serialize message"),
-            )
-            .expect("Should be able to send goodbye message")
-    }
-}
+    });
 
-#[shuttle_runtime::main]
-async fn init() -> Result<CustomService, shuttle_runtime::Error> {
-    Ok(CustomService {
-        user_count: Arc::new(AtomicU32::new(0)),
-    })
+    while let Ok((stream, address)) = socket.accept().await {
+        let ws_stream = accept_async(stream)
+            .await
+            .expect("Should be able to connect");
+
+        let new_transmitter = tx.clone();
+
+        tokio::spawn(async move {
+            let (sender, receiver) = ws_stream.split();
+            let unique_ident = Uuid::new_v4();
+            let user = User::new(address, sender, unique_ident);
+            new_transmitter
+                .send(ThreadMessages::NewUser(user))
+                .await
+                .expect("Should be able to send messages across threads");
+            // .expect() is used because in the event of a failure to send a message across threads,
+            // the whole architecture of the app breaks down anyways, so it is better to panic than
+            // leave the app running nonfunctionally
+
+            receiver
+                .for_each(|message| async {
+                    if let Ok(msg) = message {
+                        if let Ok(msg_txt) = msg.to_text() {
+                            match serde_json::from_str(msg_txt) {
+                                Ok(chat_message) => {
+                                    new_transmitter
+                                        .send(ThreadMessages::UserMessage(chat_message))
+                                        .await
+                                        .expect("Should be able to send messages across threads");
+                                }
+                                Err(e) => {
+                                    dbg!(e);
+                                    new_transmitter
+                                        .send(ThreadMessages::KickUser(unique_ident))
+                                        .await
+                                        .expect("Should be able to send messages across threads");
+                                }
+                            };
+                        } else {
+                        }
+                    } else {
+                        eprintln!("Could not read message.")
+                    }
+                })
+                .await;
+
+            new_transmitter
+                .send(ThreadMessages::UserLeave(unique_ident))
+                .await
+                .expect("Should be able to send messages across threads");
+            // same as above
+        });
+    }
+
+    Ok(())
 }
