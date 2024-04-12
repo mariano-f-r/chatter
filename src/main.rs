@@ -32,11 +32,15 @@ struct CustomService {
 #[shuttle_runtime::async_trait]
 impl shuttle_runtime::Service for CustomService {
     async fn bind(mut self, addr: net::SocketAddr) -> Result<(), shuttle_runtime::Error> {
-        listen(addr, |output| ClientHandler {
-            output,
-            user_count_ref: self.user_count.clone(),
+        listen(addr, move |output| {
+            let user_count_ref = self.user_count.clone(); // Clone only if necessary
+            ClientHandler {
+                output,
+                user_count_ref,
+            }
         })
-        .unwrap();
+        .map_err(|err| shuttle_runtime::Error::from(err))?;
+        
         Ok(())
     }
 }
