@@ -25,7 +25,7 @@ It is very much a proof of concept, and will likely not receive many, if any upd
 - **Deployment:** [Shuttle](https://shuttle.rs/) platform
 
 ## 👩‍💻 Contributing
-Contributing is always welcome, and any and all pull requests and issues are appreciated.
+Contributing is always welcome, and any and all pull requests and issues are appreciated. See our [Contributing document](CONTRIBUTING.md) for more details.
 
 ## 📜 License
 This software is licenced MIT. 
