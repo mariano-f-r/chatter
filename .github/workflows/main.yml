@@ -17,4 +17,4 @@ jobs:
           name: "chatter1"
           allow-dirty: "false"
           no-test: "true"
-          cargo-shuttle-version: "0.27.0"
+          cargo-shuttle-version: "0.43.0"
