@@ -10,7 +10,7 @@
 
 </div>
 
-![Screenshot1](https://media.discordapp.net/attachments/970868058161811466/1199575030003150848/asdas.png?ex=65c30a4e&is=65b0954e&hm=21fee065e33cfd0a8aedbf106f0f42949846808c6f71a071c1e492fae9d11290&=&format=webp&quality=lossless&width=985&height=596)
+NOTE: The latest code is on the "refactor/replace-ws-with-tungstenite"
 
 ## 🌟 About
 This project is a simple proof of concept realtime chatting app using websockets that leverages the power of Rust and JavaScript (ES6).
