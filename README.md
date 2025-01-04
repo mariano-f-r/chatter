@@ -20,7 +20,7 @@ It is very much a proof of concept, and will likely not receive many, if any upd
 🔗 [Experience Chatter Live](https://chatter1.shuttleapp.rs/)
 
 ## 💻 Technology Stack
-- **Backend:** Rust with ws-rs (WebSocket library)
+- **Backend:** Rust with Tungstenite (WebSockets) and Tokio (async)
 - **Frontend:** JavaScript (ES6), Bulma CSS
 - **Deployment:** [Shuttle](https://shuttle.rs/) platform
 
